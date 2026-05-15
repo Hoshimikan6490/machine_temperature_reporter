@@ -1,0 +1,14 @@
+{
+	"name": "machine-temperature-reporter",
+	"version": "1.0.0",
+	"description": "Monitor machine temperature and notify a webhook when a threshold is exceeded.",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"start": "node src/index.js",
+		"test": "node src/index.js --once"
+	},
+	"dependencies": {
+		"dotenv": "^16.4.5"
+	}
+}
