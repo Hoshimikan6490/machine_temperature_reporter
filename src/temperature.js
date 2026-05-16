@@ -1,5 +1,9 @@
+import { execFile } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 /**
  * ファイルから数値を読み込みます。
@@ -143,32 +147,81 @@ async function readHwmonTemperature() {
 }
 
 /**
+ * `sensors` コマンドから温度を取得します。
+ * @return {Promise<{source: string, temperatureC: number}|null>} 最高温度と出所、または取得失敗時は null
+ */
+async function readSensorsCommandTemperature() {
+	try {
+		const { stdout } = await execFileAsync('sensors', ['-j'], {
+			maxBuffer: 1024 * 1024,
+		});
+
+		const parsedOutput = JSON.parse(stdout);
+		const candidates = [];
+
+		function visit(node, pathSegments = []) {
+			if (!node || typeof node !== 'object') {
+				return;
+			}
+
+			for (const [key, value] of Object.entries(node)) {
+				const nextPathSegments = [...pathSegments, key];
+
+				if (key.endsWith('_input') && Number.isFinite(value)) {
+					const temperatureC = Number(value);
+					if (temperatureC > -50 && temperatureC < 200) {
+						candidates.push({
+							source: `sensors:${nextPathSegments.slice(0, -1).join(':')}`,
+							temperatureC: Math.round(temperatureC * 10) / 10,
+						});
+					}
+					continue;
+				}
+
+				visit(value, nextPathSegments);
+			}
+		}
+
+		visit(parsedOutput);
+
+		return candidates.length > 0
+			? candidates.sort((a, b) => b.temperatureC - a.temperatureC)[0]
+			: null;
+	} catch (error) {
+		return null;
+	}
+}
+
+/**
  * Linux システムから CPU 温度を取得します。
  * @return {Promise<{source: string, temperatureC: number}|null>} 温度計測値と出所
  * @throws {Error} センサーが見つからない場合
  */
 export async function readTemperatureCelsius() {
 	if (
-		process.env.TEST_TEMP_THRESHOLD_C !== undefined &&
-		process.env.TEST_TEMP_THRESHOLD_C !== ''
+		process.env.TEST_TEMP_LIMIT !== undefined &&
+		process.env.TEST_TEMP_LIMIT !== ''
 	) {
 		return {
-			source: 'TEST_TEMP_THRESHOLD_C',
-			temperatureC: Number(process.env.TEST_TEMP_THRESHOLD_C),
+			source: 'TEST_TEMP_LIMIT',
+			temperatureC: Number(process.env.TEST_TEMP_LIMIT),
 		};
 	}
 
-	// /sys/class/thermal と /sys/class/hwmon の両方から取得し、最高温度を返す
-	const [thermalResult, hwmonResult] = await Promise.all([
+	// /sys/class/thermal, /sys/class/hwmon, sensors コマンドの順に取得し、最高温度を返す
+	const [thermalResult, hwmonResult, sensorsResult] = await Promise.all([
 		readThermalZoneTemperature(),
 		readHwmonTemperature(),
+		readSensorsCommandTemperature(),
 	]);
 
-	if (thermalResult && hwmonResult) {
-		return thermalResult.temperatureC > hwmonResult.temperatureC
-			? thermalResult
-			: hwmonResult;
+	const candidates = [thermalResult, hwmonResult, sensorsResult].filter(
+		Boolean,
+	);
+
+	if (candidates.length === 0) {
+		return null;
 	}
 
-	return thermalResult ?? hwmonResult;
+	return candidates.sort((a, b) => b.temperatureC - a.temperatureC)[0];
 }
