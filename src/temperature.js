@@ -171,6 +171,4 @@ export async function readTemperatureCelsius() {
 	}
 
 	return thermalResult ?? hwmonResult;
-
-	return readCpuTemperature();
 }
