@@ -90,7 +90,7 @@ export const config = {
 	},
 	debug: {
 		mode: parseBoolean('DEBUG_MODE', false),
-		testLimit: parseOptionalNumber('TEST_TEMP_LIMIT'),
+		testTemperature: parseOptionalNumber('TEST_TEMP'),
 	},
 };
 

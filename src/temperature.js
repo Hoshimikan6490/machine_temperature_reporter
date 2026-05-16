@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { config } from './config.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -198,13 +199,10 @@ async function readSensorsCommandTemperature() {
  * @throws {Error} センサーが見つからない場合
  */
 export async function readTemperatureCelsius() {
-	if (
-		process.env.TEST_TEMP_LIMIT !== undefined &&
-		process.env.TEST_TEMP_LIMIT !== ''
-	) {
+	if (config.debug.testTemperature !== null) {
 		return {
-			source: 'TEST_TEMP_LIMIT',
-			temperatureC: Number(process.env.TEST_TEMP_LIMIT),
+			source: 'TEST_TEMP',
+			temperatureC: config.debug.testTemperature,
 		};
 	}
 
