@@ -1,0 +1,16 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended"],
+	"separateMultipleMajor": false,
+	"packageRules": [
+		{
+			"matchPackageNames": ["*"],
+			"automerge": false
+		}
+	],
+	"schedule": ["before 4am"],
+	"assignees": ["Hoshimikan6490"],
+	"prConcurrentLimit": 0,
+	"prHourlyLimit": 0,
+	"timezone": "Asia/Tokyo"
+}
