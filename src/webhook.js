@@ -32,7 +32,6 @@ function buildDiscordMentions(userIds) {
  * @param {number} params.temperatureC - 現在の温度（℃）
  * @param {number} params.thresholdC - しきい値温度（℃）
  * @param {string} params.source - 温度計測の出所
- * @param {boolean} params.dryRun - true の場合、送信せずログだけ出す
  * @param {string[]} [params.discordMentionUserIds=[]] - Discord メンション対象のユーザー ID
  * @return {Promise<void>}
  * @throws {Error} Webhook 送信に失敗した場合
@@ -43,7 +42,6 @@ export async function sendWebhookAlert({
 	temperatureC,
 	thresholdC,
 	source,
-	dryRun,
 	discordMentionUserIds = [],
 }) {
 	const mentionText = buildDiscordMentions(discordMentionUserIds);
@@ -67,11 +65,6 @@ export async function sendWebhookAlert({
 			users: discordMentionUserIds,
 		},
 	};
-
-	if (dryRun) {
-		console.log(`[dry-run] ${content}`);
-		return;
-	}
 
 	if (!webhookUrl) {
 		throw new Error('WEBHOOK_URL is required.');

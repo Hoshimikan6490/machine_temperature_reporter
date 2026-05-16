@@ -78,27 +78,30 @@ function parseCsvList(name) {
 }
 
 export const config = {
-	webhookUrl: process.env.WEBHOOK_URL?.trim() ?? '',
-	thresholdC: parseNumber('TEMP_THRESHOLD_C', 75),
-	pollIntervalMs: parseNumber('POLL_INTERVAL_MS', 60_000),
-	alertCooldownMs: parseNumber('ALERT_COOLDOWN_MS', 300_000),
-	dryRun: parseBoolean('DRY_RUN', false),
-	discordMentionUserIds: parseCsvList('DISCORD_MENTION_USER_IDS'),
-	testTemperatureC: parseOptionalNumber('TEST_TEMPERATURE_C'),
-	hostName:
-		process.env.HOSTNAME?.trim() ||
-		process.env.COMPUTERNAME?.trim() ||
-		'unknown-host',
+	discord: {
+		webhookUrl: process.env.DISCORD_WEBHOOK_URL?.trim() ?? '',
+		mentionUserIds: parseCsvList('DISCORD_MENTION_USER_IDS'),
+	},
+	hostName: process.env.HOSTNAME?.trim() || require('os').hostname(),
+	temperature: {
+		limit: parseNumber('TEMP_LIMIT', 75),
+		checkIntervalMs: parseNumber('TEMP_CHECK_INTERVAL_MS', 60_000),
+		alertCooldownMs: parseNumber('ALERT_COOLDOWN_MS', 300_000),
+	},
+	debug: {
+		mode: parseBoolean('DEBUG_MODE', false),
+		testLimit: parseOptionalNumber('TEST_TEMP_LIMIT'),
+	},
 };
 
-if (config.thresholdC <= 0) {
-	throw new Error('TEMP_THRESHOLD_C must be greater than 0.');
+if (config.temperature.limit <= 0) {
+	throw new Error('Temperature limit must be greater than 0.');
 }
 
-if (config.pollIntervalMs < 1_000) {
-	throw new Error('POLL_INTERVAL_MS must be at least 1000.');
+if (config.temperature.checkIntervalMs < 1_000) {
+	throw new Error('Temperature check interval must be at least 1000 ms.');
 }
 
-if (config.alertCooldownMs < 0) {
-	throw new Error('ALERT_COOLDOWN_MS must be 0 or greater.');
+if (config.temperature.alertCooldownMs < 0) {
+	throw new Error('Temperature alert cooldown must be 0 or greater.');
 }

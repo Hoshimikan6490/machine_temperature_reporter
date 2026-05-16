@@ -149,12 +149,12 @@ async function readHwmonTemperature() {
  */
 export async function readTemperatureCelsius() {
 	if (
-		process.env.TEST_TEMPERATURE_C !== undefined &&
-		process.env.TEST_TEMPERATURE_C !== ''
+		process.env.TEST_TEMP_THRESHOLD_C !== undefined &&
+		process.env.TEST_TEMP_THRESHOLD_C !== ''
 	) {
 		return {
-			source: 'TEST_TEMPERATURE_C',
-			temperatureC: Number(process.env.TEST_TEMPERATURE_C),
+			source: 'TEST_TEMP_THRESHOLD_C',
+			temperatureC: Number(process.env.TEST_TEMP_THRESHOLD_C),
 		};
 	}
 

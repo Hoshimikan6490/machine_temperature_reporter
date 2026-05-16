@@ -31,22 +31,27 @@ async function evaluateTemperature() {
 	const { temperatureC, source } = measurement;
 	const now = Date.now();
 
-	console.log(
-		`[${new Date().toISOString()}] ${config.hostName}: ${temperatureC.toFixed(1)}°C (${source})`,
-	);
+	// ログ出力：フォーマット「マシン名：温度（limit:基準温度）」
+	// DEBUG_MODEがONの場合は、ここでログを出して処理終了
+	if (config.debug.mode) {
+		console.log(
+			`[${new Date().toISOString()}] ${config.hostName}: ${temperatureC.toFixed(1)}°C (limit: ${config.temperature.limit.toFixed(1)}°C)`,
+		);
+		return;
+	}
 
-	if (temperatureC >= config.thresholdC) {
-		const cooldownExpired = now - lastAlertAt >= config.alertCooldownMs;
+	if (temperatureC >= config.temperature.limit) {
+		const cooldownExpired =
+			now - lastAlertAt >= config.temperature.alertCooldownMs;
 
 		if (!alertActive || cooldownExpired) {
 			await sendWebhookAlert({
-				webhookUrl: config.webhookUrl,
+				webhookUrl: config.discord.webhookUrl,
 				hostName: config.hostName,
 				temperatureC,
-				thresholdC: config.thresholdC,
+				thresholdC: config.temperature.limit,
 				source,
-				dryRun: config.dryRun,
-				discordMentionUserIds: config.discordMentionUserIds,
+				discordMentionUserIds: config.discord.mentionUserIds,
 			});
 
 			alertActive = true;
@@ -86,7 +91,9 @@ async function runLoop() {
 			console.error(error instanceof Error ? error.message : error);
 		}
 
-		await new Promise((resolve) => setTimeout(resolve, config.pollIntervalMs));
+		await new Promise((resolve) =>
+			setTimeout(resolve, config.temperature.checkIntervalMs),
+		);
 	}
 }
 
@@ -99,7 +106,7 @@ try {
 		await runOnce();
 	} else {
 		console.log(
-			`Monitoring started. Threshold: ${config.thresholdC.toFixed(1)}°C. Poll interval: ${config.pollIntervalMs} ms.`,
+			`Monitoring started. Threshold: ${config.temperature.limit.toFixed(1)}°C. Poll interval: ${config.temperature.checkIntervalMs} ms.`,
 		);
 		await runLoop();
 	}
