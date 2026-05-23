@@ -1,6 +1,6 @@
 import { config } from './config.js';
 import { readTemperatureCelsius } from './temperature.js';
-import { sendWebhookAlert } from './webhook.js';
+import { buildAlertMessage, sendWebhook } from './webhook.js';
 
 // Linux 専用システム：Windows での実行を禁止
 if (false && process.platform !== 'linux') {
@@ -45,14 +45,24 @@ async function evaluateTemperature() {
 			now - lastAlertAt >= config.temperature.alertCooldownMs;
 
 		if (!alertActive || cooldownExpired) {
-			await sendWebhookAlert({
-				webhookUrl: config.discord.webhookUrl,
+			const alertMessage = buildAlertMessage({
 				hostName: config.hostName,
 				temperatureC,
 				thresholdC: config.temperature.limit,
 				source,
-				discordMentionUserIds: config.discord.mentionUserIds,
 			});
+			const mentionText =
+				Array.isArray(config.discord.mentionUserIds) &&
+				config.discord.mentionUserIds.length > 0
+					? config.discord.mentionUserIds
+							.map((userId) => `<@${userId}>`)
+							.join(' ')
+					: '';
+			const content = mentionText
+				? `${mentionText} ${alertMessage}`
+				: alertMessage;
+
+			await sendWebhook(content);
 
 			alertActive = true;
 			lastAlertAt = now;
@@ -102,10 +112,12 @@ const isOnceMode = process.argv.includes('--once');
 // 単体実行モードか、ループモードかを判定して実行
 try {
 	if (isOnceMode) {
-		console.log('Running in once mode. Evaluating temperature a single time.');
+		await sendWebhook(
+			'Running in once mode. Evaluating temperature a single time.',
+		);
 		await runOnce();
 	} else {
-		console.log(
+		await sendWebhook(
 			`Monitoring started. Threshold: ${config.temperature.limit.toFixed(1)}°C. Poll interval: ${config.temperature.checkIntervalMs} ms.`,
 		);
 		await runLoop();

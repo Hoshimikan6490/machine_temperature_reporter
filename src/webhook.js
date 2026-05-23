@@ -1,3 +1,5 @@
+import { config } from './config';
+
 /**
  * アラートメッセージを組み立てます。
  * @param {Object} params - パラメータ
@@ -27,50 +29,23 @@ function buildDiscordMentions(userIds) {
 /**
  * Webhook 経由でアラート通知を送ります。
  * @param {Object} params - パラメータ
- * @param {string} params.webhookUrl - 通知先の Webhook URL
- * @param {string} params.hostName - ホスト名
- * @param {number} params.temperatureC - 現在の温度（℃）
- * @param {number} params.thresholdC - しきい値温度（℃）
- * @param {string} params.source - 温度計測の出所
- * @param {string[]} [params.discordMentionUserIds=[]] - Discord メンション対象のユーザー ID
+ * @param {string} body - Webhook に送る本文
  * @return {Promise<void>}
  * @throws {Error} Webhook 送信に失敗した場合
  */
-export async function sendWebhookAlert({
-	webhookUrl,
-	hostName,
-	temperatureC,
-	thresholdC,
-	source,
-	discordMentionUserIds = [],
-}) {
-	const mentionText = buildDiscordMentions(discordMentionUserIds);
-	const message = buildAlertMessage({
-		hostName,
-		temperatureC,
-		thresholdC,
-		source,
-	});
-	const content = mentionText ? `${mentionText} ${message}` : message;
+async function sendWebhook(body) {
 	const payload = {
-		text: content,
-		content,
-		hostName,
-		temperatureC,
-		thresholdC,
-		source,
+		text: body,
+		content: body,
 		status: 'alert',
 		timestamp: new Date().toISOString(),
-		allowed_mentions: {
-			users: discordMentionUserIds,
-		},
 	};
 
-	if (!webhookUrl) {
+	if (!config.discord.webhookUrl) {
 		throw new Error('WEBHOOK_URL is required.');
 	}
 
-	const response = await fetch(webhookUrl, {
+	const response = await fetch(config.discord.webhookUrl, {
 		method: 'POST',
 		headers: {
 			'content-type': 'application/json',
@@ -86,3 +61,5 @@ export async function sendWebhookAlert({
 		);
 	}
 }
+
+export { buildAlertMessage, sendWebhook };
