@@ -1,4 +1,4 @@
-import { config } from './config';
+import { config } from './config.js';
 
 /**
  * アラートメッセージを組み立てます。
